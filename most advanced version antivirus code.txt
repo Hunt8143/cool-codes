@@ -1,0 +1,90 @@
+import os
+import shutil
+import hashlib
+import urllib.request
+import time
+
+# Global variables
+VIRUS_DB_URL = "https://example.com/virus_db.txt"
+VIRUS_DB_FILE = "virus_db.txt"
+QUARANTINE_DIR = "quarantine"
+SCAN_EXTENSIONS = (".exe", ".dll", ".sys", ".ocx", ".scr")
+
+def download_virus_db():
+    """
+    Download the virus signature database from a remote server
+    """
+    urllib.request.urlretrieve(VIRUS_DB_URL, VIRUS_DB_FILE)
+
+def load_virus_db():
+    """
+    Load the virus signature database into memory
+    """
+    virus_db = set()
+    with open(VIRUS_DB_FILE, "r") as f:
+        for line in f:
+            virus_db.add(line.strip())
+    return virus_db
+
+def scan_file(file_path, virus_db):
+    """
+    Scan a file for viruses using signature-based detection
+    """
+    with open(file_path, "rb") as f:
+        content = f.read()
+        md5 = hashlib.md5(content).hexdigest()
+        if md5 in virus_db:
+            return True
+    return False
+
+def scan_directory(path, virus_db):
+    """
+    Scan a directory and its subdirectories for viruses
+    """
+    virus_found = False
+    for root, dirs, files in os.walk(path):
+        for file in files:
+            if file.endswith(SCAN_EXTENSIONS):
+                file_path = os.path.join(root, file)
+                if scan_file(file_path, virus_db):
+                    virus_found = True
+                    quarantine_file(file_path)
+                    print(f"Virus found in {file_path}")
+    return virus_found
+
+def quarantine_file(file_path):
+    """
+    Move an infected file to the quarantine directory
+    """
+    if not os.path.exists(QUARANTINE_DIR):
+        os.mkdir(QUARANTINE_DIR)
+    shutil.move(file_path, os.path.join(QUARANTINE_DIR, os.path.basename(file_path)))
+
+def update_virus_db():
+    """
+    Download the latest virus signature database and merge it with the existing one
+    """
+    download_virus_db()
+    new_virus_db = load_virus_db()
+    with open(VIRUS_DB_FILE, "r") as f:
+        for line in f:
+            new_virus_db.add(line.strip())
+    with open(VIRUS_DB_FILE, "w") as f:
+        for md5 in new_virus_db:
+            f.write(md5 + "\n")
+
+def main():
+    """
+    Main function that performs virus scanning and updates the signature database
+    """
+    virus_db = load_virus_db()
+    while True:
+        print("Scanning...")
+        virus_found = scan_directory(".", virus_db)
+        if not virus_found:
+            print("No viruses found.")
+        time.sleep(60)  # Wait for 1 minute before scanning again
+        update_virus_db()
+
+if __name__ == "__main__":
+    main()
