@@ -1,0 +1,26 @@
+import os
+
+# Define a list of known virus signatures
+virus_signatures = [
+    "virus_signature_1",
+    "virus_signature_2",
+    "virus_signature_3",
+    # Add more signatures as needed
+]
+
+# Define the path to the root directory to be scanned
+root_dir = "/"
+
+# Define a function to check a file against the virus signatures
+def check_file(file_path):
+    with open(file_path, "r") as file:
+        contents = file.read()
+        for signature in virus_signatures:
+            if signature in contents:
+                print(f"{file_path} contains virus signature: {signature}")
+
+# Traverse the file system starting at the root directory and check each file
+for dirpath, dirnames, filenames in os.walk(root_dir):
+    for filename in filenames:
+        file_path = os.path.join(dirpath, filename)
+        check_file(file_path)
